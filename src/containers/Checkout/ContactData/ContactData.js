@@ -57,7 +57,7 @@ class ContactData extends Component {
             { value: 'cheapest', displayValue: 'Cheapest' }
           ]
         },
-        value: ''
+        value: 'fastest'
       }
     },
     loading: false
@@ -65,30 +65,44 @@ class ContactData extends Component {
 
   componentDidMount = () => {
     axos.get('https://restcountries.eu/rest/v2/all').then(result => {
-      console.log(
-        result.data.map(el => {
-          return el.name;
-        })
-      );
+      // console.log(
+      //   result.data.map(el => {
+      //     return el.name;
+      //   })
+      // );
     });
   };
 
   orderHandler = () => {
     this.setState({ loading: true });
+    const formData = {};
+
+    for (let formElementIdentifier in this.state.orderForm) {
+      formData[formElementIdentifier] = this.state.orderForm[
+        formElementIdentifier
+      ].value;
+    }
+
     const order = {
       ingredients: this.props.ingredients,
-      price: this.props.price
+      price: this.props.price,
+      orderData: formData
     };
     axios
       .post('/orders.json', order)
       .then(() => {
         this.setState({ loading: false });
-        console.log(order);
         this.props.history.push('/');
       })
       .catch(() => {
         this.setState({ loading: false });
       });
+  };
+
+  inputChangedHandler = (event, inputIdentifier) => {
+    const updatedOrderForm = { ...this.state.orderForm };
+    updatedOrderForm[inputIdentifier].value = event.target.value;
+    this.setState({ orderForm: updatedOrderForm });
   };
 
   render() {
@@ -100,11 +114,17 @@ class ContactData extends Component {
           elementType={this.state.orderForm[el].elementType}
           elementConfig={this.state.orderForm[el].elementConfig}
           value={this.state.orderForm[el].value}
+          changed={event => this.inputChangedHandler(event, el)}
         />
       );
     });
 
-    let form = <form>{formInputs}</form>;
+    let form = (
+      <form onSubmit={this.orderHandler}>
+        {formInputs}
+        <Button btnType='Success'>ORDER</Button>
+      </form>
+    );
     if (this.state.loading) {
       form = <Spinner />;
     }
@@ -112,9 +132,6 @@ class ContactData extends Component {
       <div className={classes.ContactData}>
         <h4>Enter your contact details</h4>
         {form}
-        <Button btnType='Success' clicked={this.orderHandler}>
-          ORDER
-        </Button>
       </div>
     );
   }
